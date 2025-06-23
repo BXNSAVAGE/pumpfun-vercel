@@ -1,15 +1,26 @@
-// api/deploy.js — FINAL 100% Pump.fun-compatible Vercel server WITH Chrome Extension CORS + Vercel Body Fix
+// api/deploy.js — FIXED: CORS-compatible for Chrome Extensions & Vercel
 import bs58 from "bs58";
 import * as borsh from "borsh";
-import { Connection, Keypair, PublicKey, Transaction, sendAndConfirmTransaction, SystemProgram } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, createSetAuthorityInstruction, AuthorityType } from "@solana/spl-token";
+import {
+  Connection,
+  Keypair,
+  PublicKey,
+  Transaction,
+  sendAndConfirmTransaction,
+  SystemProgram
+} from "@solana/web3.js";
+import {
+  TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddress,
+  createSetAuthorityInstruction,
+  AuthorityType
+} from "@solana/spl-token";
 import { create } from "ipfs-http-client";
 import { PROGRAM_ID as METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 
 const PUMP_FUN_PROGRAM_ID = new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P");
 const PUMP_GLOBAL = new PublicKey("4wTV1YmiEkRvAtNtsSGPtUrqRYQMe5SKy2uB4Jjaxnjf");
 const PUMP_EVENT_AUTHORITY = new PublicKey("Ce6TQqeHC9p8KetsN6JsjHK7UTZk7nasjjnr7XxXp9F1");
-const SYSTEM_PROGRAM_ID = SystemProgram.programId;
 const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
 const RENT_SYSVAR = new PublicKey("SysvarRent111111111111111111111111111111111");
 
@@ -43,13 +54,13 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Only POST allowed" });
 
   try {
-    // Manual body parse for Vercel CORS + Extensions
     const buffers = [];
     for await (const chunk of req) buffers.push(chunk);
     const body = JSON.parse(Buffer.concat(buffers).toString());
 
     const { tokenName, tokenSymbol, image, privateKey, rpc } = body;
-    if (!tokenName || !tokenSymbol || !image || !privateKey) return res.status(400).json({ error: "Missing required fields" });
+    if (!tokenName || !tokenSymbol || !image || !privateKey)
+      return res.status(400).json({ error: "Missing required fields" });
 
     const payer = Keypair.fromSecretKey(bs58.decode(privateKey));
     const connection = new Connection(rpc || "https://api.mainnet-beta.solana.com", "confirmed");
@@ -105,7 +116,7 @@ export default async function handler(req, res) {
         { pubkey: METADATA_PROGRAM_ID, isSigner: false, isWritable: false },
         { pubkey: metadataPDA, isSigner: false, isWritable: true },
         { pubkey: payer.publicKey, isSigner: true, isWritable: true },
-        { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
         { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
         { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
         { pubkey: RENT_SYSVAR, isSigner: false, isWritable: false },
@@ -137,10 +148,3 @@ export default async function handler(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
-
-// Fix Vercel body parsing (do not remove)
-export const config = {
-  api: {
-    bodyParser: false
-  }
-};
