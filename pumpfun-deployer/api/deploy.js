@@ -1,5 +1,4 @@
-// api/deploy.js — FINAL with Full Chrome Extension CORS Support
-
+// api/deploy.js — FINAL 100% Pump.fun-compatible Vercel server WITH Chrome Extension CORS + Vercel Body Fix
 import bs58 from "bs58";
 import * as borsh from "borsh";
 import { Connection, Keypair, PublicKey, Transaction, sendAndConfirmTransaction, SystemProgram } from "@solana/web3.js";
@@ -36,20 +35,20 @@ const CreateSchema = new Map([
 ]);
 
 export default async function handler(req, res) {
-  // ✅ Full CORS headers for Chrome extension fetch
   res.setHeader("Access-Control-Allow-Origin", "chrome-extension://ldbonhcbhkfmgjalijhacohjgadpcpoj");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // ✅ Respond to OPTIONS preflight
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Only POST allowed' });
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Only POST allowed" });
 
   try {
-    const { tokenName, tokenSymbol, image, privateKey, rpc } = req.body;
+    // Manual body parse for Vercel CORS + Extensions
+    const buffers = [];
+    for await (const chunk of req) buffers.push(chunk);
+    const body = JSON.parse(Buffer.concat(buffers).toString());
+
+    const { tokenName, tokenSymbol, image, privateKey, rpc } = body;
     if (!tokenName || !tokenSymbol || !image || !privateKey) return res.status(400).json({ error: "Missing required fields" });
 
     const payer = Keypair.fromSecretKey(bs58.decode(privateKey));
@@ -138,3 +137,10 @@ export default async function handler(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
+
+// Fix Vercel body parsing (do not remove)
+export const config = {
+  api: {
+    bodyParser: false
+  }
+};
