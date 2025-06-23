@@ -1,4 +1,5 @@
-// api/deploy.js — FINAL 100% Pump.fun-compatible Vercel server WITH Chrome Extension CORS Fix
+// api/deploy.js — FINAL with Full Chrome Extension CORS Support
+
 import bs58 from "bs58";
 import * as borsh from "borsh";
 import { Connection, Keypair, PublicKey, Transaction, sendAndConfirmTransaction, SystemProgram } from "@solana/web3.js";
@@ -35,10 +36,12 @@ const CreateSchema = new Map([
 ]);
 
 export default async function handler(req, res) {
+  // ✅ Full CORS headers for Chrome extension fetch
   res.setHeader("Access-Control-Allow-Origin", "chrome-extension://ldbonhcbhkfmgjalijhacohjgadpcpoj");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
+  // ✅ Respond to OPTIONS preflight
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
